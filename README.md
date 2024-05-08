@@ -1,4 +1,4 @@
-##Original mod
+## Original mod
 
 A simple yet sometimes astonishing mod that adds a dynamic music system to Doom. Originally was created by [cyber_cool](https://github.com/jankespro12/DoomDynMus).
 
@@ -11,15 +11,15 @@ A simple yet sometimes astonishing mod that adds a dynamic music system to Doom.
 * Keybinds for changing currently playing track.
 * High-action combat music playing on specific, dangerous occasions.
 
-###Fork features
+### Fork features
 
 * Ability to bind a track group to a specific level by its number
 
-##Using
+## Using
 
-###Config formats
+### Config formats
 
-- ####Modern format
+- #### Modern format
 
 Lumps that DoomDynMus uses to recognize and group music files are called DMUSCHNK (music chunks). They look like simplified JSON files. There are 3 basic objects in DMUSCHNK:
 String - a sequence of characters. You can include whitespaces or special characters (",", "]", "}", etc.) in a string by surrounding it with quotes.
@@ -72,7 +72,7 @@ The whole list of attributes a music chunk can have is listed below:
 
 Upon selecting a random track (whether by a keybind, map change, or on game launcing) DoomDynMus picks a random chunk first (from any music chunk file loaded), then it picks a random track inside this chunk, according to current state of the game (ambient/action/death/high action). Each chunk has an equal chance of getting picked, no matter how much tracks does it have.
 
-- ####Legacy format
+- #### Legacy format
 
 Lump format is called DMUSDESC (exactly that file name, or with an extension).
 It's basic structure is described as follows:
@@ -93,6 +93,6 @@ It is placed in a separate lump called DMUSHIGH. It doesn't support duplication,
 "music/boss2.mp3"
 ```
 
-###Loading order
+### Loading order
 
 Load any music packs before the mod.

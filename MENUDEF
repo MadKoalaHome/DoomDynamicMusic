@@ -4,6 +4,12 @@ OptionValue "DoomDynMus_TrackShuffle"
 	1, "At start of each level"
 }
 
+OptionValue "DoomDynMus_Mode"
+{
+	0, "Random"
+	1, "By Level"
+}
+
 AddOptionMenu "OptionsMenu"
 {
 	Submenu "DoomDynMus options", "DoomDynMus_Options"
@@ -17,6 +23,10 @@ OptionMenu "DoomDynMus_Options"
 	StaticText "Sound effects:", Purple
 	StaticText "CVar: bool dmus_enabled", Grey
 	Option "DoomDynMus enabled", "dmus_enabled", "OnOff"
+	
+	StaticText "CVar: int dmus_shuffle_behaviour", Grey
+	Option "Choosing track mode", "dmus_choose_track_mode", "DoomDynMus_Mode"
+	
 	StaticText "CVar: int dmus_fadein_time", Grey
 	Slider "Music fade in time", "dmus_fadein_time", 0, 350, 3, 0
 	StaticText "CVar: int dmus_fadeout_time", Grey

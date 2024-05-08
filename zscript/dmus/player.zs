@@ -9,11 +9,24 @@ class DMus_Player
 	play void Init(PlayerPawn plr)
 	{
 		timer_fade = -1;
-		RandomTrack();
+		CheckMode();
 		chnk_arr[selected_chnk].UpdateCVars();
 		[fname, _state] = chnk_arr[selected_chnk].SelectFile(plr);
 		S_ChangeMusic(fname);
 		AnnounceMusicChange();
+	}
+	
+	void CheckMode()
+	{	
+		int mode = CVar.GetCVar("dmus_choose_track_mode").GetInt();
+			
+		if(mode == 0){
+			RandomTrack();
+		}
+		if(mode == 1){
+			int levelnum = level.LevelNum;
+			TrackForLevel(levelnum);
+		}
 	}
 
 	void RandomChunk()
@@ -28,6 +41,20 @@ class DMus_Player
 	{
 		RandomChunk();
 		chnk_arr[selected_chnk].RandomTrack();
+	}
+	
+	void ChunkForLevel(int level)
+	{
+		int size = chnk_arr.size();
+		if(level < size){
+			selected_chnk = level;
+		}
+	}
+	
+	void TrackForLevel(int level)
+	{
+		ChunkForLevel(level);
+		chnk_arr[selected_chnk].TrackForLevel(level);
 	}
 
 	/* Called every WorldTick() to see if file name from current chunk changes. */

@@ -27,6 +27,15 @@ class DMus_Chunk
 		cur_track = random(0, tracks.size() - 1);
 		just_switched_track = true;
 	}
+	void TrackForLevel(int levelNum)
+	{
+		int trackCount = tracks.size();
+		if(levelNum < trackCount)
+		{
+			cur_track = levelNum;
+			just_switched_track = true;
+		}
+	}
 
 	/* File selection.
 	   Based on what's going on in the game around the player.

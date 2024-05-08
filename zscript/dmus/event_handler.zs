@@ -13,10 +13,25 @@ class DMus_EventHandler : StaticEventHandler
 
 	override void WorldLoaded(WorldEvent e)
 	{
-		if(!e.isSaveGame && CVar.GetCVar("dmus_shuffle_behaviour").GetInt() == 1){
-			plr.dont_announce_fade = true;
-			plr.fade_instantly = true;
-			plr.RandomTrack();
+		if(!e.isSaveGame) {
+			
+			int mode = CVar.GetCVar("dmus_choose_track_mode").GetInt();
+			
+			if(mode == 0){
+				int shuffle = CVar.GetCVar("dmus_shuffle_behaviour").GetInt();
+				if(shuffle > 0) {
+					plr.dont_announce_fade = true;
+					plr.fade_instantly = true;
+					plr.RandomTrack();
+				}
+			}
+					
+			if(mode == 1){
+				plr.dont_announce_fade = true;
+				plr.fade_instantly = true;
+				int levelnum = level.LevelNum;
+				plr.TrackForLevel(levelnum);
+			}
 		}
 	}
 

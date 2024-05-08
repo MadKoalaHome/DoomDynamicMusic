@@ -60,11 +60,11 @@ In this array, you put one or more dictionaries - music chunks - which group tog
 The whole list of attributes a music chunk can have is listed below:
 
 - tracks - mandatory attribute which describes a list of track groups. Each track group is a dictionary, which in turn has 3 attributes:
- - normal (ambient music, no or low amount of enemies directly attacking the player - can be configured through CVars)
- - action
- - death
- - high_action (same as high_action in track options, but tied to a track group and preferred over the former)
- - level (binding a whole track group with normal, action, death e.t.c. to certain map by its level number)
+  - normal (ambient music, no or low amount of enemies directly attacking the player - can be configured through CVars)
+  - action
+  - death
+  - high_action (same as high_action in track options, but tied to a track group and preferred over the former)
+  - level (binding a whole track group with normal, action, death e.t.c. to certain map by its level number)
 
 - high_action - attribute which describes an array of music tracks which play when a player is fighting a boss or a large amount of monsters (amount of monsters is configurable through cvars). A track is selected randomly from this array, and it doesn't depend on tracks attribute.
 

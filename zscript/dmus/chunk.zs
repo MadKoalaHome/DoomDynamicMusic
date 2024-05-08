@@ -27,14 +27,34 @@ class DMus_Chunk
 		cur_track = random(0, tracks.size() - 1);
 		just_switched_track = true;
 	}
+	
 	void TrackForLevel(int levelNum)
 	{
-		int trackCount = tracks.size();
-		if(levelNum < trackCount)
-		{
-			cur_track = levelNum;
-			just_switched_track = true;
+		int foundTrack = ChooseTrackByLevel(levelNum);
+		cur_track = foundTrack ;
+		just_switched_track = true;
+	}
+	
+	int ChooseTrackByLevel(int levelNum){
+		int foundIndex = 1024;
+		for (int trackIndex = 0; trackIndex < tracks.Size(); trackIndex++) 
+        {
+			DMus_Track track = tracks[trackIndex];
+			//If track data has specified level numbers 
+			for (int levelTagIndex = 0; levelTagIndex < track.levels.Size(); levelTagIndex++) 
+			{
+				int levelTag = track.levels[levelTagIndex];
+				if(levelTag == levelNum){
+					return trackIndex;
+				}
+			}
 		}
+		//If not foun load by track index
+		if(foundIndex == 1024) foundIndex = levelNum - 1;
+		//If there are not so many tracks,just play the last one of them
+		if(foundIndex > tracks.Size()) foundIndex = tracks.Size() - 1;
+		//ToDo Maybe Random?
+		return foundIndex;
 	}
 
 	/* File selection.
@@ -46,6 +66,7 @@ class DMus_Chunk
 	double prox_dist;
 	const max_dist = 2048;
 	int combat_cooldown;
+	
 	virtual void UpdateCVars()
 	{
 		min_mnst = CVar.GetCVar("dmus_combat_min_monsters").GetInt();
@@ -59,11 +80,13 @@ class DMus_Chunk
 	{
 		if(!tracks.size())
 			return "*", "*";
+			
+		DMus_Track currentTrack = tracks[cur_track];
 
 		// Player is dead
 		if(plr.health <= 0)
-			if(tracks[cur_track].death.size())
-				return tracks[cur_track].death[random(0, tracks[cur_track].death.size() - 1)], "death";				
+			if(currentTrack.death.size())
+				return currentTrack.death[random(0, currentTrack.death.size() - 1)], "death";				
 			else
 				return "*", "death";
 
@@ -85,17 +108,19 @@ class DMus_Chunk
 		}
 
 		// Player is in combat
-		if((mnst_cnt >= min_mnst_high || has_boss) && (high_action.size() || tracks[cur_track].high_action.size())){
+		if((mnst_cnt >= min_mnst_high || has_boss) && (high_action.size() || currentTrack.high_action.size())){
 			combat_timer = combat_cooldown;
-			if(tracks[cur_track].high_action.size())
-				return tracks[cur_track].high_action[random(0, tracks[cur_track].high_action.size() - 1)];
+				
+			if(currentTrack.high_action.size())
+				return currentTrack.high_action[random(0, currentTrack.high_action.size() - 1)];
 			else
 				return high_action[random(0, high_action.size() - 1)];
 		}
-		else if(mnst_cnt >= min_mnst || has_boss){
+		else if(mnst_cnt >= min_mnst || has_boss)
+		{
 			combat_timer = combat_cooldown;
-			if(tracks[cur_track]._action.size())
-				return tracks[cur_track]._action[random(0, tracks[cur_track]._action.size() - 1)], "action";
+			if(currentTrack.actions.size())
+				return currentTrack.actions[random(0, currentTrack.actions.size() - 1)], "action";
 			else
 				return "*", "action";
 		}
@@ -105,10 +130,9 @@ class DMus_Chunk
 			return "*", "*"; // dont change track
 		}
 
-
 		// Play normal music
-		if(tracks[cur_track].normal.size())
-			return tracks[cur_track].normal[random(0, tracks[cur_track].normal.size() - 1)], "normal";
+		if(currentTrack.normal.size())
+			return currentTrack.normal[random(0, currentTrack.normal.size() - 1)], "normal";
 		return "*", "normal";
 	}
 	
@@ -127,29 +151,36 @@ class DMus_Chunk
 			else
 				folder = DMus_String(_folder).data;
 
-		/* Process tracks */
-		DMus_Object _tracks = data.Find("tracks");
-		if(!_tracks){
+		/* Checking parsed content*/
+		
+		DMus_Object fileTracksConfig = data.Find("tracks");
+		if(!fileTracksConfig){
 			DMus_Parser.error_noctx("No tracks in chunk");
 			return;
 		}
-		else if(_tracks.GetType() != DMus_Object.TYPE_ARRAY){
+		else if(fileTracksConfig.GetType() != DMus_Object.TYPE_ARRAY){
 			DMus_Parser.error_noctx("Tracks in chunk must be an array");
 			return;
 		}
-		DMus_Array tracks = DMus_Array(_tracks);
-		for(uint i = 0; i < tracks.size(); ++i){
+		
+		/* Parsing track line loop*/
+		
+		DMus_Array fileTrackList = DMus_Array(fileTracksConfig);
+		for(uint i = 0; i < fileTrackList.size(); ++i)
+		{
 			DMus_Track tr = new("DMus_Track");
-			DMus_Object _data = tracks.data[i];
-			if(!_data){
+			DMus_Object trackData = fileTrackList.data[i];
+			if(!trackData){
 				DMus_Parser.error_noctx("Track cannot be an empty value");
 				continue;
 			}
-			else if(_data.GetType() != DMus_Object.TYPE_DICT){
+			else if(trackData.GetType() != DMus_Object.TYPE_DICT){
 				DMus_Parser.error_noctx("Track cannot be a non-dictionary value");
 				continue;
 			}
-			DMus_Dict data = DMus_Dict(_data);
+			DMus_Dict data = DMus_Dict(trackData);
+
+			/*Ambient tracks*/
 
 			DMus_Object normal = data.Find("normal");
 			if(normal){ // otherwise it's an empty list of tracks - use level music
@@ -166,21 +197,27 @@ class DMus_Chunk
 				else
 					DMus_Parser.error_noctx("normal category in track is not a string nor an array");
 			}
-			DMus_Object _action = data.Find("action");
-			if(_action){
-				if(_action.GetType() == DMus_Object.TYPE_STRING)
-					tr._action.push(String.Format("%s%s", folder, DMus_String(_action).data));
-				else if(_action.GetType() == DMus_Object.TYPE_ARRAY){
-					DMus_Array __action = DMus_Array(_action);
-					for(uint j = 0; j < __action.size(); ++j)
-						if(__action.data[j].GetType() != DMus_Object.TYPE_STRING)
+			
+			/*Action tracks*/
+			
+			DMus_Object actionContainer = data.Find("action");
+			if(actionContainer){
+				if(actionContainer.GetType() == DMus_Object.TYPE_STRING)
+					tr.actions.push(String.Format("%s%s", folder, DMus_String(actionContainer).data));
+				else if(actionContainer.GetType() == DMus_Object.TYPE_ARRAY){
+					DMus_Array actions = DMus_Array(actionContainer);
+					for(uint j = 0; j < actions.size(); ++j)
+						if(actions.data[j].GetType() != DMus_Object.TYPE_STRING)
 							DMus_Parser.error_noctx("File name in track is not a string");
 						else
-							tr._action.push(String.Format("%s%s", folder, DMus_String(__action.data[j]).data));
+							tr.actions.push(String.Format("%s%s", folder, DMus_String(actions.data[j]).data));
 				}
 				else
 					DMus_Parser.error_noctx("action category in track is not a string nor an array");
 			}
+			
+			/*Death tracks*/
+			
 			DMus_Object death = data.Find("death");
 			if(death){
 				if(death.GetType() == DMus_Object.TYPE_STRING)
@@ -196,6 +233,27 @@ class DMus_Chunk
 				else
 					DMus_Parser.error_noctx("death category in track is not a string nor an array");
 			}
+			
+			/*Map level number bindings*/
+			
+			DMus_Object levelNumTag = data.Find("level");
+			if(levelNumTag){
+				if(levelNumTag.GetType() == DMus_Object.TYPE_STRING)
+					tr.levels.push(DMus_String(levelNumTag).data.ToInt(10));
+				else if(levelNumTag .GetType() == DMus_Object.TYPE_ARRAY){
+					DMus_Array levelNumTags = DMus_Array(levelNumTag);
+					for(uint j = 0; j < levelNumTags.size(); ++j)
+						if(levelNumTags.data[j].GetType() != DMus_Object.TYPE_STRING)
+							DMus_Parser.error_noctx("File name in track is not a string");
+						else
+							tr.levels.push(DMus_String(levelNumTags.data[j]).data.ToInt(10));
+				}
+				else
+					DMus_Parser.error_noctx("Level tag category in track is not a string nor an array");
+			}
+			
+			/*High action */
+			
 			DMus_Object high_action = data.Find("high_action");
 			if(high_action){
 				if(high_action.GetType() == DMus_Object.TYPE_STRING)
@@ -215,7 +273,7 @@ class DMus_Chunk
 			self.tracks.push(tr);
 		}
 
-		/* Process plain high-action music */
+		/* High-action state*/
 		DMus_Object _high_action = data.Find("high_action");
 		if(_high_action){
 			if(_high_action.GetType() != DMus_Object.TYPE_ARRAY){
@@ -238,8 +296,10 @@ class DMus_Chunk
 
 class DMus_Track
 {
-	array<string> normal;
-	array<string> _action;
+	array<string> normal;	
+	array<string> actions;
 	array<string> death;
 	array<string> high_action;
+	array<int> levels;			//Which levels to play tracks specifically
+	//array<string> levelNames;	//ToDo Level Names
 }

@@ -45,10 +45,12 @@ class DMus_Player
 	
 	void ChunkForLevel(int level)
 	{
-		int size = chnk_arr.size();
-		if(level < size){
-			selected_chnk = level;
-		}
+		/*ToDo Think of way to choose chunk by level, not only track*/
+		//int size = chnk_arr.size();
+		//if(level < size){
+		//	selected_chnk = level;
+		//}
+		RandomChunk();
 	}
 	
 	void TrackForLevel(int level)

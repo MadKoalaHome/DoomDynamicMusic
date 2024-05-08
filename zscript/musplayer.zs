@@ -3,8 +3,7 @@ class DMus_Player ui
 	// Music tracks file/lump names		  Category indicies
 	Array<String> mnames_normal;		//0
 	Array<String> mnames_action;		//1
-	Array<String> mnames_death;		//2
-
+	Array<String> mnames_death;			//2
 
 	// Loads music descriptions from DMUSDESC lumps.
 	void LoadDesc()

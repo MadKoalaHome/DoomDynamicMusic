@@ -7,7 +7,13 @@ OptionValue "DoomDynMus_TrackShuffle"
 OptionValue "DoomDynMus_Mode"
 {
 	0, "Random"
-	1, "By Level"
+	1, "By level"
+}
+
+OptionValue "DoomDynMus_Submode"
+{
+	0, "Random"
+	1, "By map order"
 }
 
 AddOptionMenu "OptionsMenu"
@@ -26,6 +32,7 @@ OptionMenu "DoomDynMus_Options"
 	
 	StaticText "CVar: int dmus_shuffle_behaviour", Grey
 	Option "Choosing track mode", "dmus_choose_track_mode", "DoomDynMus_Mode"
+	Option "Choosing track mode without level tag", "dmus_choose_track_submode", "DoomDynMus_Submode"
 	
 	StaticText "CVar: int dmus_fadein_time", Grey
 	Slider "Music fade in time", "dmus_fadein_time", 0, 350, 3, 0

@@ -4,7 +4,9 @@ server int dmus_fadein_time = 35;
 
 server int dmus_shuffle_behaviour = 1;
 
-server int dmus_choose_track_mode = 0;
+server int dmus_choose_track_mode = 1;
+
+server int dmus_choose_track_submode = 0;
 
 server int dmus_combat_cooldown = 105;
 

@@ -2,6 +2,7 @@ class DMus_Chunk
 {
 	array<DMus_Track> tracks;
 	array<string> high_action;
+	const TAG_NOT_FOUND = 1024;
 
 	/* Track selection */
 	uint cur_track;
@@ -36,7 +37,7 @@ class DMus_Chunk
 	}
 	
 	int ChooseTrackByLevel(int levelNum){
-		int foundIndex = 1024;
+		int foundIndex = TAG_NOT_FOUND;
 		for (int trackIndex = 0; trackIndex < tracks.Size(); trackIndex++) 
         {
 			DMus_Track track = tracks[trackIndex];
@@ -50,9 +51,20 @@ class DMus_Chunk
 			}
 		}
 		//If not foun load by track index
-		if(foundIndex == 1024) foundIndex = levelNum - 1;
-		//If there are not so many tracks,just play the last one of them
-		if(foundIndex > tracks.Size()) foundIndex = tracks.Size() - 1;
+		if(foundIndex == TAG_NOT_FOUND) { 
+			int mode = CVar.GetCVar("dmus_choose_track_submode").GetInt();
+			if(mode == 0)
+			{
+				foundIndex = random(0, tracks.size() - 1);
+			}
+			else 
+			{
+				foundIndex = levelNum - 1;
+				//If there are not so many tracks,just play the last one of them
+				if(foundIndex > tracks.Size()) foundIndex = tracks.Size() - 1;
+			}
+		}
+
 		//ToDo Maybe Random?
 		return foundIndex;
 	}

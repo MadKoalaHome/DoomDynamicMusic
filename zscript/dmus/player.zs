@@ -97,10 +97,14 @@ class DMus_Player
 	/* Log announcements */
 	void AnnounceMusicChange(string _fname = "")
 	{
-		string _name = _fname == "" ? fname : _fname;
-		_name = _name.Mid(_name.RightIndexOf("/") + 1);
-		_name = _name.Left(_name.RightIndexOf("."));
-		console.printf("Now playing: *%s*", _name);
+		bool showTrack = CVar.GetCVar("dmus_announcer").GetBool();
+		
+		if(showTrack){
+			string _name = _fname == "" ? fname : _fname;
+			_name = _name.Mid(_name.RightIndexOf("/") + 1);
+			_name = _name.Left(_name.RightIndexOf("."));
+			console.printf("Now playing: *%s*", _name);
+		}
 	}
 
 	/* Fade In / Fade Out effect */

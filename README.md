@@ -82,7 +82,13 @@ It's basic structure is described as follows:
 "/music/ambient2.mp3" "/music/combat2.mp3" "/music/death2.mp3"
 ```
 
-Each group has 3 tracks, one following other. They are separated by any kind of white space: spacebars, new lines, tabulations, etc. If a name of a track contains spaces, it can be encapsulated in quotes (but not necessary).
+Level tag can be optionally specified in legacy format, but it can be done only if death track is fully written in list.
+
+```javascript
+"/music/ambient2.mp3" "/music/combat2.mp3" "/music/death2.mp3" "15"
+```
+
+Each group has 3 tracks, one following other and one optional level tag. They are separated by any kind of white space: spacebars, new lines, tabulations, etc. If a name of a track contains spaces, it can be encapsulated in quotes (but not necessary).
 To avoid unnecessary duplication, you can use &#42;N to duplicate a track from the same group from other category (i.e. &#42;0 to duplicate ambient track and &#42;1 to duplicate action track). You can't duplicate tracks before providing their names.
 You can also keep the level music for any track category by typing &#42;&#42;.
 There is also a separate category "high-action" combat music. 

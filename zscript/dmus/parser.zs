@@ -4,6 +4,8 @@ class DMus_Parser
 	const LEGACY_LUMP_NAME = "DMUSDESC";
 	const LEGACY_LUMP_NAME_HIGH = "DMUSHIGH";
 	const LEVEL_TRACK_NOT_SPECIFIED = 1024;		//I think, there's no wad with 1024 levels
+	const SKIPPING_WHITESPACE = 0;
+	const READING_FIELD = 1;
 	
 	void Parse(out array<DMus_Chunk> chnk_arr)
 	{
@@ -48,8 +50,9 @@ class DMus_Parser
 			}
 		}
 	}
-
+	
 	/* Parser for legacy file format (DMUSDESC and DMUSHIGH chunks) */
+	/*That's so overcomplicated, so files can contain empty spaces in names*/
 	void ParseLegacy(out array<DMus_Chunk> chnk_arr)
 	{
 		Array<String> mnames_normal;
@@ -58,43 +61,64 @@ class DMus_Parser
 		Array<String> mnames_high;
 		Array<int> level_tags;
 
+		//LUMP LOOP
 		for(int hndl = Wads.FindLump(LEGACY_LUMP_NAME, 0, Wads.ANYNAMESPACE);
 			hndl != -1;
 			hndl = Wads.FindLump(LEGACY_LUMP_NAME, hndl+1, Wads.ANYNAMESPACE))
 		{
+			//Current lump
 			String wdat = Wads.ReadLump(hndl);
+			
 			String nbuf = ""; 			// track name buffer
+			
+			int parserState = SKIPPING_WHITESPACE;			// 0 - skipping whitespaces
+															// 1 - reading a track name
+			int currentFieldIndex = 0;						// 0 - reading normal track name
+															// 1 - reading action track name
+															// 2 - reading death track name
+															// 3 - reading map levelnum binding
+			uint line = 1;  								// line number
+			int inquote = 0; 								// if the parser is currently inside a quote
 
-			int pstate = 0;				// 0 - skipping whitespaces
-										// 1 - reading a track name
-			int currentFieldIndex = 0;	// 0 - reading normal track name
-										// 1 - reading action track name
-										// 2 - reading death track name
-										// 3 - reading map levelnum binding
-			uint line = 1;  			// line number
-			int inquote = 0; 			// if the parser is currently inside a quote
-
+			//Reading file by letters loop
 			for(int i = 0; i < wdat.Length(); ++i)
 			{
+				//Current char
 				int c = wdat.ByteAt(i);
 
+				//Checking new line 
 				if(c == ch("\0")) break;
 				if(c == ch("\n")) { 
 					++line;
 					currentFieldIndex = 0;
+					//If level tag is absent in line, fill it with zero
+					//So tag can be optional
+					if(level_tags.size() < mnames_normal.size()){
+						level_tags.push(0);
+					}
 				}
+				
+				//Checkiung in quote state
 				if(c == ch("\"")){
 					inquote = !inquote;
 					continue;
 				}
 
-				if(pstate == 0 && !IsSpace(c)){
-					pstate = 1; i--;
-				}
-				else if(pstate == 1)
+				//Checking skipping whitespaces
+				if(parserState == SKIPPING_WHITESPACE && !IsSpace(c))
 				{
+					parserState = READING_FIELD; 
+					i--;		//why?
+				}
+				
+				else if(parserState == READING_FIELD)
+				{
+					//If reached next space after quote or reached end of file
 					if((IsSpace(c) && !inquote) || i == wdat.Length() - 1)
 					{
+						
+						//Checking for specified duplicates by '*' symbols in line
+						
 						if(nbuf.ByteAt(0) == ch("*")) // special character to duplicate one of track names
 						{
 							if(nbuf.ByteAt(1) == ch("*")) // '**' keeps the level music
@@ -112,17 +136,19 @@ class DMus_Parser
 								}
 								else{
 									switch(dupi){
-										case 0: nbuf = mnames_normal[mnames_normal.Size()-1]; break;
+										//Duplicate if *0
+										case 0: nbuf = mnames_normal[mnames_normal.Size()-1]; break;	
+										//Duplicate if *1
 										case 1: nbuf = mnames_action[mnames_action.Size()-1]; break;
-										case 2: nbuf = mnames_death[mnames_death.Size()-1]; break;
 										default: error_noctx(String.Format("Forward shortcut to a non-existant index \"*%d\" at line %u", dupi, line));
 													break;
 									}
 								}
 							}
 						}
+						
+						//Mapping tracks by parsed field, upon reaching space or end of file
 
-						// Adding track name to one of the lists of track names
 						switch(currentFieldIndex)
 						{
 							case 0: mnames_normal.push(nbuf); break;
@@ -130,12 +156,21 @@ class DMus_Parser
 							case 2: mnames_death.push(nbuf);  break;
 							case 3: level_tags.push(nbuf.ToInt(10)); break;
 						}
+											
 						currentFieldIndex++;
-						if(currentFieldIndex > 3) currentFieldIndex = 0;
+						
+						//Clearing temp data
+						
 						nbuf = "";
-						pstate = 0;
+						parserState = SKIPPING_WHITESPACE;
+						//if(currentFieldIndex > 3) { 
+						//	currentFieldIndex = 0;
+
+						//}
+
 					}
-					else{
+					//Reading field in line until next quote
+					else {
 						nbuf.appendCharacter(c);
 					}
 				}
@@ -150,7 +185,7 @@ class DMus_Parser
 			String wdat = Wads.ReadLump(hndl);
 			String nbuf = ""; // track name buffer
 
-			int pstate = 0;	// 0 - skipping whitespaces
+			int parserState = SKIPPING_WHITESPACE;	// 0 - skipping whitespaces
 							// 1 - reading a track name
 			int inquote = 0; // if the parser is currently inside a quote
 
@@ -164,15 +199,15 @@ class DMus_Parser
 					continue;
 				}
 
-				if(pstate == 0 && !IsSpace(c)){
-					pstate = 1; i--;
+				if(parserState == SKIPPING_WHITESPACE && !IsSpace(c)){
+					parserState = READING_FIELD; i--;
 				}
-				else if(pstate == 1)
+				else if(parserState == READING_FIELD)
 				{
 					if((IsSpace(c) && !inquote) || i == wdat.Length() - 1){
 						mnames_high.push(nbuf);
 						nbuf = "";
-						pstate = 0;
+						parserState = SKIPPING_WHITESPACE;
 					}
 					else
 						nbuf.appendCharacter(c);
@@ -180,6 +215,8 @@ class DMus_Parser
 			}
 		}
 
+		//Creating music chunk from parsed data
+		
 		DMus_Chunk chnk = new("DMus_Chunk");
 		uint min_idx = mnames_normal.size();
 		if(mnames_action.size() < min_idx) min_idx = mnames_action.size();
@@ -189,8 +226,7 @@ class DMus_Parser
 			tr.normal.push(mnames_normal[i]);
 			tr.actions.push(mnames_action[i]);
 			tr.death.push(mnames_death[i]);
-			if(i < level_tags.size())
-				tr.levels.push(level_tags[i]);
+			tr.levels.push(level_tags[i]);
 			chnk.tracks.push(tr);
 		}
 		for(uint i = 0; i < mnames_high.size(); ++i)

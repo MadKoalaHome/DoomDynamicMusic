@@ -11,13 +11,16 @@ class DMus_EventHandler : StaticEventHandler
 		parser.ParseLegacy(plr.chnk_arr);
 	}
 
+	const RANDOM_MODE = 0;
+	const LEVEL_MODE = 1; 	
+
 	override void WorldLoaded(WorldEvent e)
 	{
 		if(!e.isSaveGame) {
 			
 			int mode = CVar.GetCVar("dmus_choose_track_mode").GetInt();
 			
-			if(mode == 0){
+			if(mode == RANDOM_MODE){
 				int shuffle = CVar.GetCVar("dmus_shuffle_behaviour").GetInt();
 				if(shuffle > 0) {
 					plr.dont_announce_fade = true;
@@ -26,7 +29,7 @@ class DMus_EventHandler : StaticEventHandler
 				}
 			}
 					
-			if(mode == 1){
+			if(mode == LEVEL_MODE){
 				plr.dont_announce_fade = true;
 				plr.fade_instantly = true;
 				int levelnum = level.LevelNum;

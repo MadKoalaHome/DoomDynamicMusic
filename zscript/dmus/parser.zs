@@ -51,6 +51,11 @@ class DMus_Parser
 		}
 	}
 	
+	bool IsDigit(int c)
+	{
+		return c >= ch("0") && c <= ch("9");
+	}
+	
 	/* Parser for legacy file format (DMUSDESC and DMUSHIGH chunks) */
 	/*That's so overcomplicated, so files can contain empty spaces in names*/
 	void ParseLegacy(out array<DMus_Chunk> chnk_arr)
@@ -113,42 +118,94 @@ class DMus_Parser
 				
 				else if(parserState == READING_FIELD)
 				{
-					//If reached next space after quote or reached end of file
+					// Check for special symbols as soon as we have at least one character
+					if(nbuf.Length() == 1 && nbuf.ByteAt(0) == ch("*"))
+					{
+						// Handle * symbol (copy previous field)
+						if(i < wdat.Length() - 1 && wdat.ByteAt(i+1) == ch("*"))
+						{
+							// Handle ** (skip remaining fields)
+							nbuf.appendCharacter(ch("*"));
+							i++; // Skip the second *
+							
+							// Skip remaining fields in this line
+							while(i < wdat.Length() && wdat.ByteAt(i) != ch("\n"))
+								i++;
+							
+							// Push the ** marker and break to next line
+							switch(currentFieldIndex)
+							{
+								case 0: mnames_normal.push(nbuf); break;
+								case 1: mnames_action.push(nbuf); break;
+								case 2: mnames_death.push(nbuf);  break;
+								case 3: level_tags.push(0); break; // Default value for skipped tag
+							}
+							
+							// Force line break processing
+							c = ch("\n");
+							continue;
+						}
+						else if(i < wdat.Length() - 1 && IsDigit(wdat.ByteAt(i+1)))
+						{
+							// Handle *0 or *1
+							int refIndex = wdat.ByteAt(i+1) - ch("0");
+							i++; // Skip the digit
+							
+							String refValue;
+							switch(refIndex)
+							{
+								case 0: refValue = mnames_normal[mnames_normal.Size()-1]; break;
+								case 1: refValue = mnames_action[mnames_action.Size()-1]; break;
+								default: error_noctx(String.Format("Invalid reference index \"*%d\" at line %u", refIndex, line));
+							}
+							
+							// Push the referenced value
+							switch(currentFieldIndex)
+							{
+								case 0: mnames_normal.push(refValue); break;
+								case 1: mnames_action.push(refValue); break;
+								case 2: mnames_death.push(refValue);  break;
+								case 3: level_tags.push(refValue.ToInt(10)); break;
+							}
+							
+							currentFieldIndex++;
+							nbuf = "";
+							parserState = SKIPPING_WHITESPACE;
+							continue;
+						}
+						else
+						{
+							// Handle standalone * (copy previous field of same type)
+							String refValue;
+							switch(currentFieldIndex)
+							{
+								case 0: refValue = mnames_normal.Size() > 0 ? mnames_normal[mnames_normal.Size()-1] : ""; break;
+								case 1: refValue = mnames_action.Size() > 0 ? mnames_action[mnames_action.Size()-1] : ""; break;
+								case 2: refValue = mnames_death.Size() > 0 ? mnames_death[mnames_death.Size()-1] : ""; break;
+								case 3: level_tags.push(level_tags.Size() > 0 ? level_tags[level_tags.Size()-1] : 0); break;
+							}
+							
+							if(currentFieldIndex < 3)
+							{
+								switch(currentFieldIndex)
+								{
+									case 0: mnames_normal.push(refValue); break;
+									case 1: mnames_action.push(refValue); break;
+									case 2: mnames_death.push(refValue); break;
+								}
+							}
+							
+							currentFieldIndex++;
+							nbuf = "";
+							parserState = SKIPPING_WHITESPACE;
+							continue;
+						}
+					}
+
+					// Normal field processing
 					if((IsSpace(c) && !inquote) || i == wdat.Length() - 1)
 					{
-						
-						//Checking for specified duplicates by '*' symbols in line
-						
-						if(nbuf.ByteAt(0) == ch("*")) // special character to duplicate one of track names
-						{
-							if(nbuf.ByteAt(1) == ch("*")) // '**' keeps the level music
-							{
-								nbuf = "*";
-							}
-							else
-							{
-								int dupi = nbuf.ByteAt(1) - ch("0");
-								if(currentFieldIndex == dupi){
-									error_noctx(String.Format("Shortcut self-reference \"*%d\" at line %u", dupi, line));
-								}
-								else if(currentFieldIndex < dupi){
-									error_noctx(String.Format("Forward shortcut to an undeclared track \"*%d\" at line %u", dupi, line));
-								}
-								else{
-									switch(dupi){
-										//Duplicate if *0
-										case 0: nbuf = mnames_normal[mnames_normal.Size()-1]; break;	
-										//Duplicate if *1
-										case 1: nbuf = mnames_action[mnames_action.Size()-1]; break;
-										default: error_noctx(String.Format("Forward shortcut to a non-existant index \"*%d\" at line %u", dupi, line));
-													break;
-									}
-								}
-							}
-						}
-						
-						//Mapping tracks by parsed field, upon reaching space or end of file
-
+						// Push the current field
 						switch(currentFieldIndex)
 						{
 							case 0: mnames_normal.push(nbuf); break;
@@ -156,21 +213,41 @@ class DMus_Parser
 							case 2: mnames_death.push(nbuf);  break;
 							case 3: level_tags.push(nbuf.ToInt(10)); break;
 						}
-											
+						
+						// If we're at the end of the line and missing fields, fill them
+						if((c == ch("\n") || i == wdat.Length() - 1) && currentFieldIndex < 3)
+						{
+							// Get the last normal music name
+							String lastNormal = mnames_normal[mnames_normal.Size()-1];
+							
+							// Fill missing action music (field 1)
+							if(currentFieldIndex < 1)
+							{
+								mnames_action.push(lastNormal);
+								currentFieldIndex = 1;
+							}
+							
+							// Fill missing death music (field 2)
+							if(currentFieldIndex < 2)
+							{
+								mnames_death.push(lastNormal);
+								currentFieldIndex = 2;
+							}
+							
+							// Fill missing level tag (field 3) with 0
+							if(currentFieldIndex < 3)
+							{
+								level_tags.push(0);
+								currentFieldIndex = 3;
+							}
+						}
+						
 						currentFieldIndex++;
-						
-						//Clearing temp data
-						
 						nbuf = "";
 						parserState = SKIPPING_WHITESPACE;
-						//if(currentFieldIndex > 3) { 
-						//	currentFieldIndex = 0;
-
-						//}
-
 					}
-					//Reading field in line until next quote
-					else {
+					else
+					{
 						nbuf.appendCharacter(c);
 					}
 				}

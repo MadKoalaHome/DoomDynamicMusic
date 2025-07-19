@@ -2,9 +2,32 @@ class DMus_Player
 {
 	array<DMus_Chunk> chnk_arr;
 	uint selected_chnk;
-
 	string fname;
 	string _state;
+
+    bool Invalid(string trackName){
+		console.printf("Invalid track name: *%s*", trackName);
+		return false;
+	}	
+
+	bool IsValidName(string trackName)
+	{
+		if(trackName == "*") return Invalid(trackName);
+		if(trackName == "*0") return Invalid(trackName);
+		if(trackName == "+") return Invalid(trackName);
+		if(trackName == "+0") return Invalid(trackName);
+		return true;
+	}
+
+	void PlayTrack(string trackName, bool _announceTrack)
+	{
+		if(IsValidName(trackName))
+		{
+			S_ChangeMusic(trackName);
+			if(_announceTrack)
+				AnnounceMusicChange();
+		}
+	}
 
 	play void Init(PlayerPawn plr)
 	{
@@ -12,8 +35,7 @@ class DMus_Player
 		CheckMode();
 		chnk_arr[selected_chnk].UpdateCVars();
 		[fname, _state] = chnk_arr[selected_chnk].SelectFile(plr);
-		S_ChangeMusic(fname);
-		AnnounceMusicChange();
+		PlayTrack(fname, true);
 	}
 	
 	void CheckMode()
@@ -65,14 +87,14 @@ class DMus_Player
 	{
 		bool enabled = CVar.GetCVar("dmus_enabled").GetBool();
 		if(Level.MapName == "TITLEMAP" || !enabled){
-			S_ChangeMusic("*");
+			PlayTrack("*", false);
 			prev_enabled = enabled;
 			return;
 		}
 
 		if(!prev_enabled && enabled){
-			S_ChangeMusic(fname);
-				AnnounceMusicChange();
+
+			PlayTrack(fname, true);
 		}
 
 		prev_enabled = enabled;
@@ -84,8 +106,11 @@ class DMus_Player
 		string new_state;
 		chnk_arr[selected_chnk].UpdateCVars();
 		[new_fname, new_state] = chnk_arr[selected_chnk].SelectFile(plr);
-		if(new_state != "*"
-			&& (new_fname != fname && (new_state != _state || chnk_arr[selected_chnk].just_switched_track))){
+		
+		if(!IsValidName(new_state)) return;
+
+		if((new_fname != fname && (new_state != _state || chnk_arr[selected_chnk].just_switched_track)))
+		{
 			chnk_arr[selected_chnk].just_switched_track = false;
 			FadeTo(new_fname, new_state, fade_instantly);
 			if(dont_announce_fade)
@@ -126,9 +151,7 @@ class DMus_Player
 		if(ticks_fadein + ticks_fadeout <= 1 || instant){
 			fname = to_fname;
 			_state = to_state;
-			S_ChangeMusic(fname);
-			if(!dont_announce_fade)
-				AnnounceMusicChange();
+			PlayTrack(fname, !dont_announce_fade); 
 			dont_announce_fade = true;
 		}
 		else{
@@ -149,9 +172,7 @@ class DMus_Player
 			if(timer_fade == ticks_fadeout){
 				fname = fade_to_fname;
 				_state = fade_to_state;
-				S_ChangeMusic(fname);
-				if(!dont_announce_fade)
-					AnnounceMusicChange();
+				PlayTrack(fname, !dont_announce_fade); 
 				dont_announce_fade = true;
 			}
 			++timer_fade;

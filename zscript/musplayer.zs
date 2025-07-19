@@ -5,6 +5,23 @@ class DMus_Player ui
 	Array<String> mnames_action;		//1
 	Array<String> mnames_death;			//2
 
+	bool IsValidName(string trackName)
+	{
+		if(new_state == "*") return false;
+		if(new_state == "*0") return false;
+		if(new_state == "+") return false;
+		if(new_state == "+0") return false;
+		return true;
+	}
+	
+	void ChangeMusic(string trackName)
+	{
+		if(!IsValidName(trackName)
+		{
+			S_ChangeMusic(trackName);
+		}
+	}
+
 	// Loads music descriptions from DMUSDESC lumps.
 	void LoadDesc()
 	{
@@ -146,9 +163,9 @@ class DMus_Player ui
 
 			if(timer_fade == ticks_fadein){
 				switch(fade_tcateg){
-					case 0: S_ChangeMusic(mnames_normal[fade_tgr]); break;
-					case 1: S_ChangeMusic(mnames_action[fade_tgr]); break;
-					case 2: S_ChangeMusic(mnames_death[fade_tgr]); break;
+					case 0: ChangeMusic(mnames_normal[fade_tgr]); break;
+					case 1: ChangeMusic(mnames_action[fade_tgr]); break;
+					case 2: ChangeMusic(mnames_death[fade_tgr]); break;
 				}
 			}
 		}
@@ -185,9 +202,9 @@ class DMus_Player ui
 		cur_tgr = track_group;
 		cur_tcateg = track_category;
 		switch(cur_tcateg){
-			case 0: S_ChangeMusic(mnames_normal[cur_tgr]); break;
-			case 1: S_ChangeMusic(mnames_action[cur_tgr]); break;
-			case 2: S_ChangeMusic(mnames_death[cur_tgr]); break;
+			case 0: ChangeMusic(mnames_normal[cur_tgr]); break;
+			case 1: ChangeMusic(mnames_action[cur_tgr]); break;
+			case 2: ChangeMusic(mnames_death[cur_tgr]); break;
 		}
 	}
 }
